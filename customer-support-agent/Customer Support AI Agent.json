@@ -1,0 +1,509 @@
+{
+  "name": "Customer Support AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0a7ba18f-5ce8-4aae-bdc3-dfb587614fb8",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZC3faHXPWTgTA5QU",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "66690761-2f4b-4df8-bcb2-7b510dd38e37",
+              "name": "emailBodys",
+              "value": "={{ $json.snippet }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "457c0275-0c5d-49e4-b114-1688ec58d8fa",
+      "name": "EmailBody"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        352,
+        208
+      ],
+      "id": "f2de046e-4fd5-4fd5-ad9d-32f70d72d832",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oqhXqcdIh4CwBDCM",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Email received: {{ $json.emailBodys }}\nfrom: {{ $('Gmail Trigger').item.json.From }}",
+        "options": {
+          "systemMessage": "#Overview\n\nYou are a helpful assistant that answers any inquiries for our e commerce store called NovaMart .You will be drafting email replies for the incoming queries that come through.\n\n##Tools\n\nVector_store - This tool will be used to help us answer any incoming queries from users\n\nemail_draft - This tool will be used to draft any emails back to the user. Make sure to use the Vector_store before using this tool\n\n##Rules\n\n-ALWAYS use Vector_store before answering and drafting any emails\n\n-ALWAYS draft an email with an answer\n\n-Make the email draft a medium length, keeping it concise with a good structure\n##Extra information\n\nMy name is James\n\n-Make sure to include that when drafting the email\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        768,
+        96
+      ],
+      "id": "be10465d-b340-4efb-87ed-0fc33220b143",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.emailBodys }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Promotional",
+              "description": "Marketing,offers,discounts,sales pitches,newsletters."
+            },
+            {
+              "category": "Support_Service",
+              "description": "Costumer inquires,troubleshooting,complaints,or help  requests ."
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "Please classify the text provided by the user into one of the following categories: {categories}, and use the provided formatting instructions below. Don't explain, and only output the json."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "a20d8a87-bf78-455f-b53f-8bf086518f5d",
+      "name": "Classify_Email"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Work with the data  inside the vector database to answer any questions.",
+        "tableName": {
+          "__rl": true,
+          "value": "customer_support",
+          "mode": "list",
+          "cachedResultName": "customer_support"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        976,
+        448
+      ],
+      "id": "8955d11d-ee87-42fd-bc51-25a7e62f4708",
+      "name": "Vector_Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "umDi6M05vVGpZUTm",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        832,
+        544
+      ],
+      "id": "86a538aa-f730-428a-9de3-187f70b2d1e1",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oqhXqcdIh4CwBDCM",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To_Email', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        272
+      ],
+      "id": "e652e5a2-af61-41d9-b591-f77df6ed6b7f",
+      "name": "email_draft",
+      "webhookId": "4b9fbe38-b577-4dfd-a755-a2b9ad615a2b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "rElow5mwnuAxTZiD",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1JPcPFVoBbK8wQ02wzN93b6sv4CctOZde",
+          "mode": "list",
+          "cachedResultName": "RAG Example",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1JPcPFVoBbK8wQ02wzN93b6sv4CctOZde"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        80,
+        736
+      ],
+      "id": "9fc6dbd0-ea9f-407b-874b-df3c617e0b2f",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Rbe4hNekHreqL4uX",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        288,
+        736
+      ],
+      "id": "461b3819-9452-4835-9f05-e35f0a99e587",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Rbe4hNekHreqL4uX",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "customer_support",
+          "mode": "list",
+          "cachedResultName": "customer_support"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        736
+      ],
+      "id": "b8645d64-60b7-4838-8c28-fda0267a6336",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "umDi6M05vVGpZUTm",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        944
+      ],
+      "id": "35b1d0f0-f181-4ea8-a20d-8e7dbd86d0cb",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        448,
+        928
+      ],
+      "id": "129c02c3-fef7-4654-bdc0-d19cfb7938dd",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oqhXqcdIh4CwBDCM",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        304
+      ],
+      "id": "c25ef737-1126-4ba5-b213-a9d96aac59f8",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oqhXqcdIh4CwBDCM",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6355668849",
+        "text": "=New Inquiry received from {{ $('Gmail Trigger').item.json.From.split(\"  <\").first() }}  \n\nAbout: {{ $('Gmail Trigger').item.json.Subject }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        96
+      ],
+      "id": "de73cabf-6a42-46ca-b9cc-c73d8c41e2aa",
+      "name": "Send a text message",
+      "webhookId": "bc92ef92-185a-4209-83ac-9374e2232e7c",
+      "credentials": {
+        "telegramApi": {
+          "id": "mEPIXTiNDs2ZOWzp",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "EmailBody",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EmailBody": {
+      "main": [
+        [
+          {
+            "node": "Classify_Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classify_Email",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify_Email": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector_Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Vector_Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "email_draft": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a1549ec7-ed9c-46e4-9b9f-9e7e5c43c893",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6894eac63f1c4afedf4657ff178b7eb39c29d153ee3ad4b49c3b7da28e7039cb"
+  },
+  "nodeGroups": [],
+  "id": "410yWF1elwOlx9Go",
+  "tags": []
+}
