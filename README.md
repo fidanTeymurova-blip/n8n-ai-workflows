@@ -9,11 +9,23 @@ A document-based Q&A system that answers questions from uploaded PDF files using
 - **Tools:** n8n, Google Gemini, Supabase (pgvector), Google Drive
 - **Folder:** [rag-ai-agent](./rag-ai-agent)
 
+### 2. Customer Support AI Agent
+An intelligent email automation system that classifies incoming emails, drafts AI-powered replies using a knowledge base, and notifies the team via Telegram.
+- **Tools:** n8n, Google Gemini, Supabase (pgvector), Gmail, Telegram
+- **Folder:** [customer-support-agent](./customer-support-agent)
+
+### 3. Research AI Agent
+An AI-powered company research system that searches the web and saves detailed analysis to Google Sheets.
+- **Tools:** n8n, Google Gemini, Tavily API, Google Sheets
+- **Folder:** [research-agent](./research-agent)
+
 ## Tech Stack
 - n8n (workflow automation)
 - Google Gemini (LLM + embeddings)
 - Supabase (vector database)
-- Google Drive (document storage)
+- Google Drive, Gmail, Google Sheets
+- Tavily API (web search)
+- Telegram
 
 ## Author
 Fidan Teymurova — fidanteymrva@gmail.com
