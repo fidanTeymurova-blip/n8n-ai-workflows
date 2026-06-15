@@ -1,0 +1,271 @@
+{
+  "name": "Research AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Company Name:{{ $json['Company Name'] }}\nCompany Website: {{ $json['Company Website'] }}",
+        "options": {
+          "systemMessage": "#Overview\n\nYou are a helpful, intelligent research assistant that helps to do research on new companies that come through.\n\n## Tools\n\nResearch_Tool\n\nthis tool will be used to do the research.\n\n##Rules\n\nThe research that we are looking for from the company should contain\n\nTARGET AUDIENCE, OFFER\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "32d4daa0-e0f9-4f8d-905e-b1b53256eaef",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        208
+      ],
+      "id": "21f4083a-72a6-4a3e-bbbf-f2bc81e7e5c3",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oqhXqcdIh4CwBDCM",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Search the web for current information on any topic",
+        "method": "POST",
+        "url": "=https://api.tavily.com/search\n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "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"
+            },
+            {
+              "name": "query",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters1_Value', ``, 'string') }}"
+            },
+            {
+              "name": "max_results",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        208
+      ],
+      "id": "bb6d14b4-2423-492d-b937-ccbcb236c6ef",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "formTitle": "Website Form",
+        "formDescription": "Please fill out the  form  with your details.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Company Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Company Website",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "c5097b5b-085b-483e-b5f7-7a27975e1e33",
+      "name": "On form submission",
+      "webhookId": "f4f9df73-b252-4ddd-bc21-22822434ba78"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19rUXYPP-U92qSWVuUlhU5S6xlxFvRq63CM7gDDPwmiw",
+          "mode": "list",
+          "cachedResultName": "CRM NEW WEBSITE LEADS",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19rUXYPP-U92qSWVuUlhU5S6xlxFvRq63CM7gDDPwmiw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19rUXYPP-U92qSWVuUlhU5S6xlxFvRq63CM7gDDPwmiw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Full Name": "={{ $('On form submission').item.json['Full Name'] }}",
+            "Company Name": "={{ $('On form submission').item.json['Company Name'] }}",
+            "Company Website": "={{ $('On form submission').item.json['Company Website'] }}",
+            "Research": "={{ $json.output }}",
+            "Submission Date": "={{ $('On form submission').item.json.submittedAt.toDateTime().format('DD') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Full Name",
+              "displayName": "Full Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Website",
+              "displayName": "Company Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Research",
+              "displayName": "Research",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Submission Date",
+              "displayName": "Submission Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        560,
+        16
+      ],
+      "id": "bddbcf1e-de7f-48d0-9e6e-2b9e10283574",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "wKsUVooL5Nxbv0s6",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "43c659d2-9d0a-4a8c-96d6-32f3e768513a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6894eac63f1c4afedf4657ff178b7eb39c29d153ee3ad4b49c3b7da28e7039cb"
+  },
+  "nodeGroups": [],
+  "id": "MizDs1xPOvSJDmKw",
+  "tags": []
+}
