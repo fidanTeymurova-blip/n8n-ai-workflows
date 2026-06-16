@@ -19,6 +19,11 @@ An AI-powered company research system that searches the web and saves detailed a
 - **Tools:** n8n, Google Gemini, Tavily API, Google Sheets
 - **Folder:** [research-agent](./research-agent)
 
+### 4. AI Job Matcher
+An automated job-matching pipeline that scrapes IT vacancies from jobsearch.az, scores them against a candidate's CV using Google Gemini, and sends Telegram notifications for high-match opportunities.
+**Tools:** n8n, Google Gemini, Telegram, jobsearch.az (web scraping)
+**Folder:** `ai-job-matcher`
+
 ## Tech Stack
 - n8n (workflow automation)
 - Google Gemini (LLM + embeddings)
