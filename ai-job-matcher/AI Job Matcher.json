@@ -1,0 +1,372 @@
+{
+  "name": "AI Job Matcher",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ca1df1ea-2ff0-4d77-a87f-204fb9e61636",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://classic.jobsearch.az/vacancies?category=1076",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "db70849e-94df-46cd-bdd4-f301a1869543",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $input.first().json.data;\n\nconst regex = /href=\"(https:\\/\\/classic\\.jobsearch\\.az\\/vacancies\\/[^\"]+)\" class=\"vacancies__mobile-link\"/g;\nconst matches = [...html.matchAll(regex)];\n\nconst keywords = ['ai', 'automation'];\nconst links = [...new Set(matches.map(m => m[1]))]\n  .filter(link => keywords.some(kw => link.toLowerCase().includes(kw)));\n\nreturn links.length > 0 \n  ? links.map(link => ({ json: { url: link } }))\n  : [{ json: { error: 'No matching links' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "11f7f3f0-2ed6-44e7-be8a-70bfd4d520f1",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "1af5c853-d251-45b8-b6c7-b91c132dd52d",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        832,
+        208
+      ],
+      "id": "5d4afe89-c215-4fb9-b66c-f5587e8c9e65",
+      "placeholder": true
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "1ac675b4-b61d-4764-a558-16bd07552174",
+      "name": "HTTP Request1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $input.item.json.data;\n\nif (!html || typeof html !== 'string') {\n  return [{ json: { title: 'Error', description: 'No data', url: '' } }];\n}\n\n// Title\nconst titleMatch = html.match(/<h1[^>]*>(.*?)<\\/h1>/s);\nconst title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : 'Unknown';\n\n// Description - vacancy__description div\nconst descMatch = html.match(/<div class=\"vacancy__description content\">([\\s\\S]*?)<\\/div>\\s*<div class=\"vacancy__info__side-bar\"/);\nconst desc = descMatch ? descMatch[1].replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim().substring(0, 2000) : '';\n\n// URL\nconst urlMatch = html.match(/<link rel=\"canonical\" href=\"([^\"]+)\"/);\nconst url = urlMatch ? urlMatch[1] : '';\n\nreturn [{ json: { title, description: desc, url } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -96
+      ],
+      "id": "e916e45c-c1ab-417c-af1a-10ba7acf3de1",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Vakansiya başlığı: {{ $json.title }}\nVakansiya url: {{ $json.url }}\nVakansiya təsviri: {{ $json.description }}",
+        "options": {
+          "systemMessage": "Sən iş axtaran namizəd üçün vakansiya uyğunluğunu qiymətləndirən AI köməkçisisən.\n\nNamizədin CV-si:\n- Texniki bacarıqlar: C# / ASP.NET Core, React, TypeScript, NestJS, PostgreSQL, Prisma ORM, JWT, Docker, Swagger, vanilla JavaScript (Drag & Drop API, LocalStorage)\n- Maraq sahəsi: AI / Automation, n8n, Python, TypeScript\n- Təhsil: Bakı Mühəndislik Universiteti, İT, 2023–2027 (tələbə)\n- Səviyyə: Junior\n\nSənə bir vakansiyanın başlığı və təsviri veriləcək. Bu vakansiyanın namizədin CV-sinə uyğunluq faizini (0-100) hesabla.\n\nCAVABI YALNIZ AŞAĞIDAKI JSON FORMATINDA QAYTAR, HEÇ BİR ƏLAVƏ MƏTN YAZMA (heç ```json işarəsi də yazma):\n{\"title\": \"vakansiya başlığı\", \"url\": \"vakansiya url-i\", \"match_percent\": 0, \"reason\": \"qısa səbəb\"}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1168,
+        144
+      ],
+      "id": "0daa16e1-79d0-4f26-bac7-13e6bc4c20cb",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.item.json.output;\n\nlet parsed;\ntry {\n  const cleaned = raw.replace(/```json|```/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = { title: 'Parse error', url: '', match_percent: 0, reason: 'JSON parse alınmadı' };\n}\n\nreturn [{ json: parsed }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        144
+      ],
+      "id": "e86b467e-f47f-46ae-87dc-4a4a6a95509b",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d2c19267-2c3a-487a-bff7-6d340224b607",
+              "leftValue": "={{ $json.match_percent }}",
+              "rightValue": 70,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1728,
+        144
+      ],
+      "id": "3f002adf-362f-45d3-929b-8f6cbc66bbb6",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "chatId": "6355668849",
+        "text": "=🎯 Yeni uyğun vakansiya tapıldı!  📌 {{ $json.title }} ✅ Uyğunluq: {{ $json.match_percent }}% 💬 Səbəb: {{ $json.reason }} 🔗 {{ $json.url }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1936,
+        48
+      ],
+      "id": "64487200-d1f6-40e3-a8df-0ab63007ecbf",
+      "name": "Send a text message",
+      "webhookId": "76614c13-9106-4142-82b3-e0230508c12c",
+      "credentials": {
+        "telegramApi": {
+          "id": "mEPIXTiNDs2ZOWzp",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1040,
+        352
+      ],
+      "id": "2896fc84-f26d-4435-994e-5cc2a155f6ca",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oqhXqcdIh4CwBDCM",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a48f8c65-454e-4b77-94ec-37f1c9de5e0d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6894eac63f1c4afedf4657ff178b7eb39c29d153ee3ad4b49c3b7da28e7039cb"
+  },
+  "nodeGroups": [],
+  "id": "lW3wBm5jpMMzD7ap",
+  "tags": []
+}
